@@ -1,0 +1,9 @@
+- name: Build and push puddle-app Docker image to AWS ECR
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Create ECR repository if it does not exist
+      community.aws.ecs_ecr:
+        name: "{{ ecr_repository_name }}"
+      register: ecr_repo
