@@ -3,6 +3,9 @@
 # Use official Python 3.12 slim image as base image
 FROM python:3.12-slim 
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 # Set the working directory in the container to /app
 WORKDIR /app
 
