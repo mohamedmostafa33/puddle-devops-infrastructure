@@ -17,3 +17,8 @@
         name: "{{ ecr_repo.repository.repositoryUri }}:{{ image_tag }}"
         path: "{{ docker_file_path }}"
         dockerfile: "{{ docker_file }}"
+
+    - name: Push docker image to ecr repository
+      community.docker.docker_image_push:
+        name: "{{ ecr_repo.repository.repositoryUri }}"
+        tag: "{{ image_tag }}"
