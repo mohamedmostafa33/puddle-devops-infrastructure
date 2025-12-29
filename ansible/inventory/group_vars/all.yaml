@@ -1,1 +1,7 @@
-ecr_repository_name: "puddle-app"
+ecr_repository_name: puddle-app-repo
+
+image_tag: latest
+
+docker_file_path: /home/ec2-user/projects/puddle-devops-infrastructure/puddle
+
+docker_file: Dockerfile
