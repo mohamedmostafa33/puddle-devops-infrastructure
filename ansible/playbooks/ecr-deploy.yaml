@@ -7,3 +7,13 @@
       community.aws.ecs_ecr:
         name: "{{ ecr_repository_name }}"
       register: ecr_repo
+
+    - name: Print the info of ECR repository
+      debug:
+        var: ecr_repo
+
+    - name: Build docker image
+      community.docker.docker_image_build:
+        name: "{{ ecr_repo.repository.repositoryUri }}:{{ image_tag }}"
+        path: "{{ docker_file_path }}"
+        dockerfile: "{{ docker_file }}"
