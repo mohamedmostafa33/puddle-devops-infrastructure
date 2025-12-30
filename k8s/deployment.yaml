@@ -20,3 +20,15 @@ spec:
         image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/puddle-app:v1
         ports:
         - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: puddle-app-config
+        - secretRef:
+            name: puddle-app-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
