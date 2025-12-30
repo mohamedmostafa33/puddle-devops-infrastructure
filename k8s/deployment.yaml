@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: puddle-app-deployment
+  namespace: puddle-app-namespace
+  labels:
+    app: puddle-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: puddle-app
+  template:
+    metadata:
+      labels:
+        app: puddle-app
+    spec:
+      containers:
+      - name: puddle-app-container
+        image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/puddle-app:v1
+        ports:
+        - containerPort: 8000
