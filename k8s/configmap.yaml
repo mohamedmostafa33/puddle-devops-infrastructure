@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: puddle-app-config
+  namespace: puddle-app-namespace
+data:
+  DJANGO_DEBUG: "False"
+  DJANGO_ALLOWED_HOSTS: "*"
+  DJANGO_CSRF_TRUSTED_ORIGINS: ""
+  DJANGO_SECURE: "true"
+  DJANGO_EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"

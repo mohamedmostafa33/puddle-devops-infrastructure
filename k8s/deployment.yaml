@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: puddle-app-deployment
+  namespace: puddle-app-namespace
+  labels:
+    app: puddle-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: puddle-app
+  template:
+    metadata:
+      labels:
+        app: puddle-app
+    spec:
+      containers:
+      - name: puddle-app-container
+        image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/puddle-app:v1
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: puddle-app-config
+        - secretRef:
+            name: puddle-app-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
