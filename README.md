@@ -5,13 +5,20 @@ A complete DevOps project showcasing Docker containerization, Ansible automation
 ## 🏗️ Architecture
 
 ```
-Django App → Docker Image → AWS ECR → Kubernetes Deployment
+Terraform → Provision ECR
+    ↓
+Docker → Build Image
+    ↓
+Ansible → Push to ECR
+    ↓
+Kubernetes → Deploy Application
 ```
 
 ## 🛠️ Technologies
 
+- **Terraform**: Infrastructure as Code (IaC)
 - **Docker**: Container packaging
-- **Ansible**: Infrastructure automation
+- **Ansible**: Deployment automation
 - **Kubernetes**: Container orchestration
 - **AWS ECR**: Container registry
 - **Django**: Web application
@@ -19,7 +26,12 @@ Django App → Docker Image → AWS ECR → Kubernetes Deployment
 ## 📁 Project Structure
 
 ```
-├── ansible/               # Ansible automation
+├── terraform/            # Infrastructure as Code
+│   ├── versions.tf
+│   ├── provider.tf
+│   ├── ecr.tf
+│   └── outputs.tf
+├── ansible/              # Deployment automation
 │   ├── ansible.cfg
 │   ├── inventory/
 │   │   ├── hosts.yaml
@@ -41,6 +53,7 @@ Django App → Docker Image → AWS ECR → Kubernetes Deployment
 
 ## 📋 Prerequisites
 
+- Terraform >= 1.0
 - Docker 20.10+
 - Python 3.10+
 - Ansible 2.15+
@@ -86,15 +99,32 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 
 ## 📦 Deployment
 
-### Deploy to AWS ECR
+### Step 1: Provision ECR with Terraform
 
 ```bash
-cd ansible
+cd terraform/
+
+# Initialize Terraform
+terraform init
+
+# Preview changes
+terraform plan
+
+# Create ECR repository
+terraform apply
+
+# Get ECR URL
+terraform output ecr_repository_url
+```
+
+### Step 2: Build and Push Docker Image
+
+```bash
+cd ../ansible
 ansible-playbook playbooks/ecr-deploy.yaml
 ```
 
 This will:
-- Create ECR repository (if not exists)
 - Build Docker image
 - Push image to ECR
 
@@ -118,13 +148,23 @@ kubectl get svc -n puddle-app-namespace
 
 ## ⚙️ Configuration
 
+### Terraform Variables
+
+Edit [terraform/ecr.tf](terraform/ecr.tf) to customize:
+
+```hcl
+resource "aws_ecr_repository" "my_ecr_repo" {
+  name                 = "puddle-app-repo"  # Repository name
+  image_tag_mutability = "MUTABLE"           # or "IMMUTABLE"
+}
+```
+
 ### Ansible Variables
 
 Edit [ansible/inventory/group_vars/all.yaml](ansible/inventory/group_vars/all.yaml):
 
 ```yaml
 aws_region: "us-east-1"
-ecr_repository_name: "puddle-app"
 image_tag: "latest"
 ```
 
@@ -163,6 +203,19 @@ kubectl port-forward -n puddle-app-namespace svc/puddle-app-service 8080:80
 
 ## 🔍 Troubleshooting
 
+**Terraform errors:**
+```bash
+# Verify AWS credentials
+aws sts get-caller-identity
+
+# Check Terraform state
+terraform show
+
+# Destroy and recreate
+terraform destroy
+terraform apply
+```
+
 **Pods not starting:**
 ```bash
 kubectl describe pod -n puddle-app-namespace <pod-name>
@@ -180,8 +233,10 @@ kubectl logs -n puddle-app-namespace <pod-name>
 
 ## ✨ Key Features
 
+- ✅ Infrastructure as Code with Terraform
+- ✅ Automated ECR provisioning and state management
 - ✅ Automated Docker image builds with Ansible
-- ✅ AWS ECR integration for container registry
+- ✅ Separation of concerns (Terraform for infra, Ansible for deployment)
 - ✅ Kubernetes deployment with 3 replicas
 - ✅ Health monitoring (liveness/readiness probes)
 - ✅ Resource management (CPU/memory limits)
@@ -191,6 +246,7 @@ kubectl logs -n puddle-app-namespace <pod-name>
 ## 🔗 Related Links
 
 - [Puddle Django App Repository](https://github.com/mohamedmostafa33/puddle)
+- [Terraform Documentation](https://www.terraform.io/docs/)
 - [AWS ECR Documentation](https://docs.aws.amazon.com/ecr/)
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [Ansible Documentation](https://docs.ansible.com/)
