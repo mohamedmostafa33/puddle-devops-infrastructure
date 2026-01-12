@@ -2,7 +2,7 @@ name: Puddle Build & Deploy Pipeline
 on:
   push:
     branches:
-      - main
+      - feature/pipeline-setup
   pull_request:
     branches:
       - main
