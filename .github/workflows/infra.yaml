@@ -41,9 +41,13 @@ jobs:
       
       - name: Terraform Plan
         run: terraform plan -out=tfplan
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       
       - name: Get ECR Repository URL
         id: ecr_output
@@ -51,9 +55,13 @@ jobs:
           ECR_URL=$(terraform output -raw ecr_repository_url)
           echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
           echo "ECR Repository created: $ECR_URL"
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       
       - name: Save Terraform outputs
         run: terraform output -json > terraform-outputs.json
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       
       - name: Upload Terraform outputs
         uses: actions/upload-artifact@v4
