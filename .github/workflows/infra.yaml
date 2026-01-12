@@ -5,9 +5,6 @@ on:
   push:
     branches:
       - feature/pipeline-setup
-    paths:
-      - 'terraform/**'
-      - '.github/workflows/infra.yaml'
 
 jobs:
   terraform:
