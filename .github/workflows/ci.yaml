@@ -1,5 +1,7 @@
-name: Puddle Build & Deploy Pipeline
+name: Puddle CI Pipeline
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/pipeline-setup
