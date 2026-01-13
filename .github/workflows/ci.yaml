@@ -49,11 +49,6 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
       
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      
       - name: Terraform Apply if changes
         run: |
           terraform plan -out=tfplan -detailed-exitcode
@@ -96,7 +91,7 @@ jobs:
     needs: terraform
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
