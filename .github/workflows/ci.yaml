@@ -14,8 +14,86 @@ env:
     AWS_REGION: us-east-1
 
 jobs:
+  terraform:
+    name: Provision ECR Infrastructure
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./terraform
+    
+    outputs:
+      ecr_url: ${{ steps.ecr_output.outputs.ecr_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+      
+      - name: Terraform Init
+        run: terraform init
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Terraform Validate
+        run: terraform validate
+      
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Terraform Apply if changes
+        run: |
+          terraform plan -out=tfplan -detailed-exitcode
+          PLAN_EXIT_CODE=$?
+          if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
+            echo "No changes to apply."
+          elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
+            echo "Changes detected, applying..."
+            terraform apply -auto-approve tfplan
+          else
+            echo "Error running terraform plan"
+            exit $PLAN_EXIT_CODE
+          fi
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Get ECR Repository URL
+        id: ecr_output
+        run: |
+          ECR_URL=$(terraform output -raw ecr_repository_url)
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "ECR Repository created: $ECR_URL"
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Save Terraform outputs
+        run: terraform output -json > terraform-outputs.json
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Upload Terraform outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-output
+          path: terraform/terraform-outputs.json
+          retention-days: 30
+
   build:
     runs-on: ubuntu-latest
+    needs: terraform
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -38,30 +116,36 @@ jobs:
           coverage report
           coverage xml
 
-  terraform:
+  docker:
     runs-on: ubuntu-latest
-    needs: build  
+    needs: [terraform, build]
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
       - name: Download terraform output artifact
         uses: actions/download-artifact@v4
         with:
           name: terraform-output
           path: ./terraform-output
-
+      
       - name: Load ECR repository URI
         id: ecr-info
         run: |
-          ECR_URL=$(jq -r '.ecr_url' ./terraform-output/terraform-outputs.json)
+          ECR_URL=$(jq -r '.ecr_repository_url.value' ./terraform-output/terraform-outputs.json)
           echo "ECR URL is: $ECR_URL"
           echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
-
-  docker:
-    runs-on: ubuntu-latest
-    needs: terraform 
-    steps:
+      
       - name: Get commit SHA
         id: get-sha
         run: echo "COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Build Docker image with commit SHA
         run: |
@@ -71,12 +155,9 @@ jobs:
         run: |
           docker tag puddle-app:v${{ env.COMMIT_SHA }} ${{ env.ECR_URL }}:latest
       
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_URL }}
       
       - name: Push Docker image to ECR
         run: |
