@@ -14,8 +14,48 @@ Ansible → Push to ECR
 Kubernetes → Deploy Application
 ```
 
+## 🔄 CI/CD Pipelines
+
+The project includes two GitHub Actions workflows for automated deployment:
+
+### Infrastructure Pipeline (`infra.yaml`)
+Provisions and manages AWS infrastructure:
+- Initializes and validates Terraform configuration
+- Provisions ECR repository on AWS
+- Outputs ECR repository URL for use in CI pipeline
+- Saves Terraform state for consistency
+
+**Trigger:** Manual workflow_dispatch or push to `feature/pipeline-setup` branch
+
+### CI Pipeline (`ci.yaml`)
+Automates testing, building, and deployment:
+
+**Test Job:**
+- Runs Python/Django unit tests with coverage reporting
+- Caches dependencies for faster execution
+- Uploads coverage reports as artifacts
+
+**Build-and-Push Job:**
+- Authenticates with AWS ECR
+- Builds Docker image from Dockerfile
+- Tags image with commit SHA and `latest`
+- Pushes both tags to ECR repository
+- Provides detailed image information in workflow summary
+
+**Trigger:** 
+- Tests run on all pushes and PRs
+- Build and push only on pushes to `feature/pipeline-setup` or manual workflow_dispatch
+
+**Key Features:**
+- ✅ Separated test and build jobs for efficiency
+- ✅ Conditional execution (build only after tests pass)
+- ✅ Dependency caching for faster builds
+- ✅ Semantic image tagging (commit SHA + latest)
+- ✅ Comprehensive logging and workflow summaries
+
 ## 🛠️ Technologies
 
+- **GitHub Actions**: CI/CD automation
 - **Terraform**: Infrastructure as Code (IaC)
 - **Docker**: Container packaging
 - **Ansible**: Deployment automation
@@ -26,6 +66,10 @@ Kubernetes → Deploy Application
 ## 📁 Project Structure
 
 ```
+├── .github/              # GitHub Actions workflows
+│   └── workflows/
+│       ├── infra.yaml   # Infrastructure provisioning pipeline
+│       └── ci.yaml      # CI/CD build and push pipeline
 ├── terraform/            # Infrastructure as Code
 │   ├── versions.tf
 │   ├── provider.tf
@@ -233,6 +277,11 @@ kubectl logs -n puddle-app-namespace <pod-name>
 
 ## ✨ Key Features
 
+- ✅ **CI/CD Pipeline with GitHub Actions**
+  - Automated testing with coverage reporting
+  - Automated Docker image builds and ECR pushes
+  - Semantic versioning with commit SHA tagging
+  - Separated test and build jobs for efficiency
 - ✅ Infrastructure as Code with Terraform
 - ✅ Automated ECR provisioning and state management
 - ✅ Automated Docker image builds with Ansible
