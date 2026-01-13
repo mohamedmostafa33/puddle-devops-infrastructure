@@ -46,12 +46,16 @@ jobs:
       
       - name: Terraform Apply if changes
         run: |
-          terraform show -json tfplan | jq '.resource_changes | length' > plan_changes.txt
-          CHANGES=$(cat plan_changes.txt)
-          if [ "$CHANGES" -eq "0" ]; then
+          terraform plan -out=tfplan -detailed-exitcode
+          PLAN_EXIT_CODE=$?
+          if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
             echo "No changes to apply."
-          else
+          elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
+            echo "Changes detected, applying..."
             terraform apply -auto-approve tfplan
+          else
+            echo "Error running terraform plan"
+            exit $PLAN_EXIT_CODE
           fi
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
