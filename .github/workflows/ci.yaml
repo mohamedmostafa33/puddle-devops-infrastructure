@@ -46,14 +46,14 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
-    needs: build 
+    needs: [build, infra]  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Load ECR URL from file
+      - name: Get ECR URL from infra job
         run: |
-          ECR_URL=$(cat terraform/ecr-url.json | jq -r '.ecr_url')
+          ECR_URL="${{ needs.infra.outputs.ecr_url }}"
           echo "ECR URL is: $ECR_URL"
           echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
 
@@ -83,4 +83,5 @@ jobs:
       - name: Push Docker image to ECR
         run: |
           docker push ${{ env.ECR_URL }}:latest
+          echo "Pushed: ${{ env.ECR_URL }}:latest"
           
