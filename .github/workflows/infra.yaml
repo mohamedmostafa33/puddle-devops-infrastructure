@@ -41,13 +41,7 @@ jobs:
         working-directory: ./terraform
         run: terraform validate
       
-      - name: Terraform Plan
-        working-directory: ./terraform
-        run: terraform plan -out=tfplan
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      
-      - name: Terraform Apply if changes
+      - name: Terraform Plan and Apply
         working-directory: ./terraform
         run: |
           terraform plan -out=tfplan -detailed-exitcode
