@@ -1,256 +1,187 @@
 # Puddle DevOps Infrastructure
 
-A complete DevOps project showcasing Docker containerization, Ansible automation, and Kubernetes orchestration for the [Puddle Django web application](https://github.com/mohamedmostafa33/puddle).
+Complete CI/CD pipeline for the [Puddle Django marketplace](https://github.com/mohamedmostafa33/puddle) with automated testing, Docker builds, and ECR deployment.
 
 ## 🏗️ Architecture
 
 ```
-Terraform → Provision ECR
-    ↓
-Docker → Build Image
-    ↓
-Ansible → Push to ECR
-    ↓
-Kubernetes → Deploy Application
+GitHub Push → CI Pipeline → Infrastructure Job → Terraform (ECR)
+                         ↓
+                    Build Job → Django Tests
+                         ↓
+                    Docker Job → Build & Push to ECR
 ```
 
 ## 🛠️ Technologies
 
-- **Terraform**: Infrastructure as Code (IaC)
-- **Docker**: Container packaging
-- **Ansible**: Deployment automation
-- **Kubernetes**: Container orchestration
-- **AWS ECR**: Container registry
-- **Django**: Web application
+**CI/CD**: GitHub Actions  
+**IaC**: Terraform + Terraform Cloud  
+**Testing**: Django Test Framework (14 tests)  
+**Container**: Docker + AWS ECR  
+**Orchestration**: Kubernetes  
+**Automation**: Ansible  
 
 ## 📁 Project Structure
 
 ```
-├── terraform/            # Infrastructure as Code
-│   ├── versions.tf
+├── .github/workflows/
+│   ├── ci.yaml           # Main CI/CD pipeline
+│   └── infra.yaml        # Infrastructure provisioning
+├── terraform/
+│   ├── ecr.tf            # ECR repository
+│   ├── versions.tf       # Terraform Cloud config
 │   ├── provider.tf
-│   ├── ecr.tf
 │   └── outputs.tf
-├── ansible/              # Deployment automation
-│   ├── ansible.cfg
-│   ├── inventory/
-│   │   ├── hosts.yaml
-│   │   └── group_vars/
-│   │       └── all.yaml
-│   └── playbooks/
-│       └── ecr-deploy.yaml
-├── docker/               # Docker configuration
-│   ├── Dockerfile
+├── docker/
+│   ├── Dockerfile        # Production image
 │   └── .dockerignore
 ├── k8s/                  # Kubernetes manifests
+│   ├── deployment.yaml   # 3 replicas + health checks
+│   ├── service.yaml
 │   ├── namespace.yaml
 │   ├── configmap.yaml
-│   ├── secret.yaml
-│   ├── deployment.yaml
-│   └── service.yaml
+│   └── secret.yaml
+├── ansible/              # Alternative deployment
+│   └── playbooks/
+│       └── ecr-deploy.yaml
 └── puddle/               # Django application
+    ├── core/tests.py     # 7 tests
+    └── item/tests.py     # 7 tests
 ```
 
-## 📋 Prerequisites
+## 🚀 CI/CD Pipeline
 
-- Terraform >= 1.0
-- Docker 20.10+
-- Python 3.10+
-- Ansible 2.15+
-- kubectl
-- AWS CLI v2
-- Minikube (for local testing)
-- AWS account with ECR access
+### Workflow Triggers
 
-## 🚀 Installation
+**Push to `feature/pipeline-setup`** → Runs complete pipeline
 
-### 1. Python Virtual Environment
+### Pipeline Jobs
 
-```bash
-python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Linux/Mac
+1. **Infrastructure** (Reusable workflow)
+   - Provisions AWS ECR via Terraform
+   - Stores state in Terraform Cloud
+   - Outputs ECR URL
 
-pip install boto3 botocore requests
+2. **Build** (Tests)
+   - Python 3.12 setup
+   - Install dependencies
+   - Run 14 Django unit tests
+   - Generate coverage report
+
+3. **Docker** (Build & Push)
+   - Build image with commit SHA tag
+   - Login to ECR
+   - Push `:v{SHA}` and `:latest` tags
+
+### Required Secrets
+
+```
+AWS_ACCESS_KEY_ID         # AWS credentials
+AWS_SECRET_ACCESS_KEY     # AWS credentials
+TF_API_TOKEN              # Terraform Cloud token
 ```
 
-### 2. Ansible Collections
+## 📦 Local Deployment
 
-```bash
-ansible-galaxy collection install community.aws
-ansible-galaxy collection install community.docker
-```
-
-### 3. AWS Configuration
-
-```bash
-aws configure
-# Enter your AWS Access Key ID
-# Enter your AWS Secret Access Key
-# Default region: us-east-1
-# Default output format: json
-```
-
-### 4. ECR Authentication
-
-```bash
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
-```
-
-## 📦 Deployment
-
-### Step 1: Provision ECR with Terraform
+### 1. Provision ECR
 
 ```bash
 cd terraform/
-
-# Initialize Terraform
 terraform init
-
-# Preview changes
-terraform plan
-
-# Create ECR repository
 terraform apply
+```
 
+### 2. Build & Push (Manual)
+
+```bash
 # Get ECR URL
-terraform output ecr_repository_url
+ECR_URL=$(cd terraform && terraform output -raw ecr_repository_url)
+
+# Build
+docker build -t puddle-app:latest -f docker/Dockerfile ./puddle
+
+# Login & Push
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_URL
+docker tag puddle-app:latest $ECR_URL:latest
+docker push $ECR_URL:latest
 ```
 
-### Step 2: Build and Push Docker Image
+### 3. Deploy to Kubernetes
 
 ```bash
-cd ../ansible
-ansible-playbook playbooks/ecr-deploy.yaml
-```
-
-This will:
-- Build Docker image
-- Push image to ECR
-
-### Deploy to Kubernetes
-
-```bash
-# Start Minikube (for local testing)
-minikube start
-
-# Apply manifests
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
-
-# Verify deployment
-kubectl get pods -n puddle-app-namespace
-kubectl get svc -n puddle-app-namespace
 ```
-
-## ⚙️ Configuration
-
-### Terraform Variables
-
-Edit [terraform/ecr.tf](terraform/ecr.tf) to customize:
-
-```hcl
-resource "aws_ecr_repository" "my_ecr_repo" {
-  name                 = "puddle-app-repo"  # Repository name
-  image_tag_mutability = "MUTABLE"           # or "IMMUTABLE"
-}
-```
-
-### Ansible Variables
-
-Edit [ansible/inventory/group_vars/all.yaml](ansible/inventory/group_vars/all.yaml):
-
-```yaml
-aws_region: "us-east-1"
-image_tag: "latest"
-```
-
-### Kubernetes ConfigMap
-
-Non-sensitive Django settings in [k8s/configmap.yaml](k8s/configmap.yaml):
-
-- `DJANGO_DEBUG`: Set to "False" for production
-- `DJANGO_ALLOWED_HOSTS`: Configure allowed hosts
-- `DJANGO_SECURE`: Security settings
-- `DJANGO_EMAIL_BACKEND`: Email configuration
-
-### Kubernetes Secret
-
-Sensitive credentials in [k8s/secret.yaml](k8s/secret.yaml):
-
-- `DJANGO_SECRET_KEY`: Django secret key (base64 encoded)
-- `DATABASE_URL`: Database connection string (optional, defaults to SQLite)
-
-**⚠️ Note**: The included secret.yaml contains demo credentials for portfolio purposes only. Update with your own secrets for production use.
 
 ## 🧪 Testing
 
 ```bash
-# Check pod status
-kubectl get pods -n puddle-app-namespace
-
-# View logs
-kubectl logs -n puddle-app-namespace -l app=puddle-app
-
-# Test service
-kubectl get svc -n puddle-app-namespace
-# Access via LoadBalancer IP or use port-forward for local testing
-kubectl port-forward -n puddle-app-namespace svc/puddle-app-service 8080:80
+cd puddle/
+python manage.py test --verbosity=2
 ```
+
+**Test Coverage:**
+- Core app: Authentication, views, user management (7 tests)
+- Item app: Models, CRUD operations, permissions (7 tests)
+
+## ⚙️ Configuration
+
+### Terraform Cloud
+
+State managed in Terraform Cloud workspace:
+- Organization: `puddle-devops`
+- Workspace: `puddle-infra`
+
+### ECR Repository
+
+```hcl
+name = "puddle-app-repo"
+region = "us-east-1"
+image_tag_mutability = "MUTABLE"
+```
+
+### Kubernetes
+
+- **Replicas**: 3
+- **Resources**: 256Mi RAM, 0.25 CPU
+- **Health Probes**: `/` endpoint check
+- **Service**: LoadBalancer on port 80
 
 ## 🔍 Troubleshooting
 
-**Terraform errors:**
-```bash
-# Verify AWS credentials
-aws sts get-caller-identity
+**Pipeline fails on terraform:**
+- Check `TF_API_TOKEN` secret
+- Verify Terraform Cloud workspace exists
 
-# Check Terraform state
-terraform show
+**Tests failing:**
+- Run locally: `python manage.py test`
+- Check database migrations
 
-# Destroy and recreate
-terraform destroy
-terraform apply
-```
-
-**Pods not starting:**
-```bash
-kubectl describe pod -n puddle-app-namespace <pod-name>
-kubectl logs -n puddle-app-namespace <pod-name>
-```
-
-**ECR authentication issues:**
-- Verify AWS credentials: `aws sts get-caller-identity`
-- Re-authenticate with ECR
-- Check IAM permissions for ECR operations
-
-**Service not accessible:**
-- For Minikube: Use `minikube service puddle-app-service -n puddle-app-namespace`
-- For cloud: Check LoadBalancer provisioning status
+**ECR push fails:**
+- Verify AWS credentials
+- Check ECR repository exists
 
 ## ✨ Key Features
 
-- ✅ Infrastructure as Code with Terraform
-- ✅ Automated ECR provisioning and state management
-- ✅ Automated Docker image builds with Ansible
-- ✅ Separation of concerns (Terraform for infra, Ansible for deployment)
-- ✅ Kubernetes deployment with 3 replicas
-- ✅ Health monitoring (liveness/readiness probes)
-- ✅ Resource management (CPU/memory limits)
-- ✅ ConfigMap and Secret for configuration management
-- ✅ Production-ready Kubernetes manifests
+✅ Automated CI/CD with GitHub Actions  
+✅ Sequential job execution (infra → test → build)  
+✅ Terraform Cloud state management  
+✅ Reusable workflow architecture  
+✅ Git SHA-based image tagging  
+✅ 14 unit tests with coverage  
+✅ Production-ready Kubernetes manifests  
+✅ Health monitoring & auto-restart  
 
-## 🔗 Related Links
+## 🔗 Links
 
-- [Puddle Django App Repository](https://github.com/mohamedmostafa33/puddle)
-- [Terraform Documentation](https://www.terraform.io/docs/)
-- [AWS ECR Documentation](https://docs.aws.amazon.com/ecr/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Ansible Documentation](https://docs.ansible.com/)
+- [Puddle App Repo](https://github.com/mohamedmostafa33/puddle)
+- [GitHub Actions Docs](https://docs.github.com/actions)
+- [Terraform Cloud](https://app.terraform.io)
+- [AWS ECR](https://aws.amazon.com/ecr/)
 
 ---
 
-Built for DevOps portfolio and learning purposes 🚀
+**Built for DevOps portfolio** 🚀
