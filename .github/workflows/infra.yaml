@@ -33,8 +33,7 @@ jobs:
         with:
           filters: |
             infra:
-              - 'terraform/**'
-              - '.github/workflows/infra.yaml'
+              - 'terraform/**/*.tf'
           show-files: true
           token: ${{ secrets.GITHUB_TOKEN }}
   
