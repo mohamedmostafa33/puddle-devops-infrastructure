@@ -1,6 +1,6 @@
 # Puddle DevOps Infrastructure
 
-Complete CI/CD pipeline for the [Puddle marketplace](https://github.com/mohamedmostafa33/puddle) with automated testing, Docker builds, and ECR deployment.
+Complete CI/CD pipeline for the [Puddle Django marketplace](https://github.com/mohamedmostafa33/puddle) with automated testing, Docker builds, and ECR deployment.
 
 ## 🏗️ Architecture
 
