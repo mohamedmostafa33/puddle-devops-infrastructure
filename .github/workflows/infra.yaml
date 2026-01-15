@@ -34,7 +34,7 @@ jobs:
           filters: |
             infra:
               - 'terraform/**/*.tf'
-          show-files: true
+          list-files: true
           token: ${{ secrets.GITHUB_TOKEN }}
   
   terraform:
