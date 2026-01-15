@@ -15,8 +15,31 @@ on:
         value: ${{ jobs.terraform.outputs.ecr_url }}
 
 jobs:
+  
+  detect-changes:
+    name: Detect Infrastructure changes
+    runs-on: ubuntu-latest
+    outputs:
+      infra_changed: ${{ steps.detect_changes.outputs.infra }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect infra changes
+        id : detect_changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            infra:
+              - 'terraform/**'
+              - '.github/workflows/infra.yaml'
+  
   terraform:
     name: Provision ECR Infrastructure
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infra_changed == 'true'
     runs-on: ubuntu-latest
     outputs:
       ecr_url: ${{ steps.ecr_output.outputs.ecr_url }}
