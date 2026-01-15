@@ -34,7 +34,11 @@ jobs:
           filters: |
             infra:
               - 'terraform/**/*.tf'
+<<<<<<< HEAD
           show-files: true
+=======
+          list-files: json
+>>>>>>> feature/pipeline-setup
           token: ${{ secrets.GITHUB_TOKEN }}
   
   terraform:
