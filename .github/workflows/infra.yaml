@@ -35,7 +35,8 @@ jobs:
             infra:
               - 'terraform/**'
               - '.github/workflows/infra.yaml'
-          list-files: true
+          show-files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
   
   terraform:
     name: Provision ECR Infrastructure
