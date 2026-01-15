@@ -35,6 +35,7 @@ jobs:
             infra:
               - 'terraform/**'
               - '.github/workflows/infra.yaml'
+          list-files: true
   
   terraform:
     name: Provision ECR Infrastructure
