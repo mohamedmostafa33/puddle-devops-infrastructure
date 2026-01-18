@@ -28,7 +28,6 @@ db.sqlite3
 db.sqlite3-journal
 /media
 /staticfiles
-media/
 
 # Virtual Environment
 venv/
@@ -78,20 +77,3 @@ yarn-error.log*
 # Backup files
 *.bak
 *.backup
-
-# Terraform
-.terraform/
-*.tfstate
-*.tfstate.*
-*.tfvars
-*.tfvars.json
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-.terraformrc
-terraform.rc
-crash.log
-crash.*.log
-*.tfplan
-.terraform.lock.hcl
