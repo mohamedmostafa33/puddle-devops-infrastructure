@@ -24,9 +24,29 @@ resource "aws_s3_bucket_public_access_block" "puddle_app_bucket_public_access_bl
 
   block_public_acls       = true
   ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
+  block_public_policy     = false
+  restrict_public_buckets = false
 }
+
+resource "aws_s3_bucket_policy" "public_read_static_and_products" {
+  bucket = aws_s3_bucket.puddle_app_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource = [
+          "arn:aws:s3:::${aws_s3_bucket.puddle_app_bucket.bucket}/staticfiles/*",
+          "arn:aws:s3:::${aws_s3_bucket.puddle_app_bucket.bucket}/media/products/*"
+        ]
+      }
+    ]
+  })
+}
+
 
 resource "aws_s3_bucket_versioning" "puddle_app_bucket_versioning" {
   bucket = aws_s3_bucket.puddle_app_bucket.id
