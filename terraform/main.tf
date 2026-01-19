@@ -40,13 +40,12 @@ resource "aws_s3_bucket_policy" "public_read_static_and_products" {
         Action    = "s3:GetObject"
         Resource = [
           "arn:aws:s3:::${aws_s3_bucket.puddle_app_bucket.bucket}/staticfiles/*",
-          "arn:aws:s3:::${aws_s3_bucket.puddle_app_bucket.bucket}/media/products/*"
+          "arn:aws:s3:::${aws_s3_bucket.puddle_app_bucket.bucket}/media/*"
         ]
       }
     ]
   })
 }
-
 
 resource "aws_s3_bucket_versioning" "puddle_app_bucket_versioning" {
   bucket = aws_s3_bucket.puddle_app_bucket.id
