@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     'conversation',
     'core',
     'dashboard',
@@ -60,7 +61,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -141,10 +141,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
@@ -169,3 +166,41 @@ if SECURE_MODE:
 # Fail fast if running in production without a proper secret key
 if not DEBUG and SECRET_KEY == 'dev-insecure-secret':
     raise ValueError('DJANGO_SECRET_KEY must be set when DEBUG=False')
+
+# AWS S3 Settings - Use S3 for storage if configured
+USE_S3 = env.bool('USE_S3', default=False)
+
+if USE_S3:
+    # AWS S3 Settings
+    AWS_STORAGE_BUCKET_NAME = env('AWS_BUCKET_NAME')
+    AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+    AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default=f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com')
+    AWS_DEFAULT_ACL = None
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+    AWS_QUERYSTRING_AUTH = False
+
+    # Django 4.2+ STORAGES configuration for S3
+    STORAGES = {
+        "default": {
+            "BACKEND": "puddle.storage_backends.MediaStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "puddle.storage_backends.StaticStorage",
+        },
+    }
+
+    # Django 4.1 fallback so uploads use S3 (STORAGES is ignored before 4.2)
+    DEFAULT_FILE_STORAGE = "puddle.storage_backends.MediaStorage"
+    STATICFILES_STORAGE = "puddle.storage_backends.StaticStorage"
+
+    # URLs for media and static files from S3
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/staticfiles/'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+else:
+    # Local file storage (development)
+    STATIC_URL = '/static/'
+    MEDIA_URL = '/media/'
