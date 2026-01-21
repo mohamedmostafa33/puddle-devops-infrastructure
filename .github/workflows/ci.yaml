@@ -61,6 +61,11 @@ jobs:
           pip install -r src/requirements.txt
           pip install coverage
 
+      - name: Collect static files
+        working-directory: src
+        run: |
+          python manage.py collectstatic --noinput
+
       - name: Run Django tests with coverage
         working-directory: src
         run: |
