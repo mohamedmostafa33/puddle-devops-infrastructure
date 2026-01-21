@@ -62,17 +62,17 @@ jobs:
           terraform_version: 1.6.0
       
       - name: Terraform Init
-        working-directory: ./terraform
+        working-directory: ./infra
         run: terraform init
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       
       - name: Terraform Validate
-        working-directory: ./terraform
+        working-directory: ./infra
         run: terraform validate
       
       - name: Terraform Plan and Apply
-        working-directory: ./terraform
+        working-directory: ./infra
         run: |
           terraform plan -out=tfplan -detailed-exitcode
           PLAN_EXIT_CODE=$?
@@ -90,7 +90,7 @@ jobs:
       
       - name: Get ECR Repository URL
         id: ecr_output
-        working-directory: ./terraform
+        working-directory: ./infra
         run: |
           ECR_URL=$(terraform output -raw ecr_repository_url)
           echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT

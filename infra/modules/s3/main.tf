@@ -1,8 +1,3 @@
-resource "aws_ecr_repository" "my_ecr_repo" {
-  name                 = var.ecr_name
-  image_tag_mutability = "MUTABLE"
-}
-
 resource "aws_s3_bucket" "puddle_app_bucket" {
   bucket = var.s3_bucket_name
   tags = {
