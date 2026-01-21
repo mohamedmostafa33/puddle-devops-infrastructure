@@ -64,7 +64,7 @@ jobs:
       - name: Run Django tests with coverage
         working-directory: src
         run: |
-          coverage run --source='src' manage.py test
+          coverage run --source='.' manage.py test
           coverage report
           coverage xml
 
