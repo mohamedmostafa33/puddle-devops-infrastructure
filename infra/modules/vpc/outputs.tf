@@ -1,47 +1,39 @@
-output "ecr_repository_url" {
-  value = module.ecr.ecr_repository_url
-}
-
-output "s3_bucket_name" {
-  value = module.s3.s3_bucket_name
-}
-
 output "vpc_id" {
   description = "VPC ID"
-  value       = module.vpc.vpc_id
+  value       = aws_vpc.puddle_vpc.id
 }
 
 output "public_subnet_id" {
   description = "Public subnet ID"
-  value       = module.vpc.public_subnet_id
+  value       = aws_subnet.puddle_public_subnet.id
 }
 
 output "private_subnet_id" {
   description = "Private subnet ID"
-  value       = module.vpc.private_subnet_id
+  value       = aws_subnet.puddle_private_subnet.id
 }
 
 output "internet_gateway_id" {
   description = "Internet Gateway ID"
-  value       = module.vpc.internet_gateway_id
+  value       = aws_internet_gateway.puddle_igw.id
 }
 
 output "nat_eip_id" {
   description = "Elastic IP"
-  value       = module.vpc.nat_eip_id
+  value       = aws_eip.puddle_nat_eip.id
 }
 
 output "nat_gateway_id" {
   description = "NAT Gateway ID"
-  value       = module.vpc.nat_gateway_id
+  value       = aws_nat_gateway.puddle_nat_gw.id
 }
 
 output "public_route_table_id" {
   description = "Public route table ID"
-  value       = module.vpc.public_route_table_id
+  value       = aws_route_table.puddle_public_route_table.id
 }
 
 output "private_route_table_id" {
   description = "Private route table ID"
-  value       = module.vpc.private_route_table_id
+  value       = aws_route_table.puddle_private_route_table.id
 }
