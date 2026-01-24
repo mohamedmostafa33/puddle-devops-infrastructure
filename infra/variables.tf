@@ -81,27 +81,27 @@ variable "tags" {
 
 variable "db_name" {
   description = "Database name"
-  type = string
-  default = "puddle-db"
+  type        = string
+  default     = "puddle-db"
 }
 
 variable "db_username" {
   description = "Database username"
-  type = string
-  default = "puddle"
+  type        = string
+  default     = "puddle"
 }
 
 variable "db_password" {
   description = "Database password"
   type        = string
   sensitive   = true
-  default     = "Puddle@1234"
+  default     = "PuddleuseR123"
 }
 
 variable "db_instance_class" {
   description = "RDS instance type"
-  type = string
-  default = "db.t3.micro"
+  type        = string
+  default     = "db.t3.micro"
 }
 
 variable "db_engine" {
@@ -112,6 +112,6 @@ variable "db_engine" {
 
 variable "db_engine_version" {
   description = "Database engine version"
-  type = string
-  default = "17.6"
+  type        = string
+  default     = "17.6"
 }

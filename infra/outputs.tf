@@ -83,16 +83,16 @@ output "eks_node_group_sg_id" {
 
 output "db_endpoint" {
   description = "Database endpoint"
-  value = module.rds.db_endpoint
+  value       = module.rds.db_endpoint
 }
 
 output "db_port" {
   description = "Database port"
-  value = module.rds.db_port
+  value       = module.rds.db_port
 }
 
 output "db_instance_id" {
   description = "Database instance ID"
-  value = module.rds.db_instance_id
+  value       = module.rds.db_instance_id
 }
 
