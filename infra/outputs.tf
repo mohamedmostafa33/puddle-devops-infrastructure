@@ -80,3 +80,19 @@ output "eks_node_group_sg_id" {
   value       = module.eks.eks_node_group_sg_id
   description = "Security group ID of EKS nodes"
 }
+
+output "db_endpoint" {
+  description = "Database endpoint"
+  value = module.rds.db_endpoint
+}
+
+output "db_port" {
+  description = "Database port"
+  value = module.rds.db_port
+}
+
+output "db_instance_id" {
+  description = "Database instance ID"
+  value = module.rds.db_instance_id
+}
+

@@ -78,3 +78,40 @@ variable "tags" {
     Project     = "Puddle"
   }
 }
+
+variable "db_name" {
+  description = "Database name"
+  type = string
+  default = "puddle-db"
+}
+
+variable "db_username" {
+  description = "Database username"
+  type = string
+  default = "puddle"
+}
+
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+  default     = "Puddle@1234"
+}
+
+variable "db_instance_class" {
+  description = "RDS instance type"
+  type = string
+  default = "db.t3.micro"
+}
+
+variable "db_engine" {
+  description = "Database engine"
+  type        = string
+  default     = "postgres"
+}
+
+variable "db_engine_version" {
+  description = "Database engine version"
+  type = string
+  default = "17.6"
+}
