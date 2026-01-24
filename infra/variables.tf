@@ -16,37 +16,34 @@ variable "vpc_cidr_block" {
   default     = "10.0.0.0/16"
 }
 
-variable "public_subnet_cidr_block" {
-  description = "The cidr for the public subnet"
+variable "public_subnet_cidr_block_a" {
+  description = "The cidr for the first public subnet"
   type        = string
   default     = "10.0.1.0/24"
 }
 
-variable "private_subnet_cidr_block" {
-  description = "The cidr for the private subnet"
+variable "public_subnet_cidr_block_b" {
+  description = "The cidr for the second public subnet"
+  type        = string
+  default     = "10.0.3.0/24"
+}
+
+variable "private_subnet_cidr_block_a" {
+  description = "The cidr for the first private subnet"
   type        = string
   default     = "10.0.2.0/24"
+}
+
+variable "private_subnet_cidr_block_b" {
+  description = "The cidr for the second private subnet"
+  type        = string
+  default     = "10.0.4.0/24"
 }
 
 variable "cluster_name" {
   description = "The name of the EKS cluster"
   type        = string
   default     = "puddle-eks-cluster"
-}
-
-variable "vpc_id" {
-  description = "VPC ID where the EKS cluster will be deployed"
-  type        = string
-}
-
-variable "public_subnet_ids" {
-  description = "Public subnet IDs"
-  type        = list(string)
-}
-
-variable "private_subnet_ids" {
-  description = "Private subnet IDs"
-  type        = list(string)
 }
 
 variable "eks_version" {

@@ -3,14 +3,20 @@ output "vpc_id" {
   value       = aws_vpc.puddle_vpc.id
 }
 
-output "public_subnet_id" {
-  description = "Public subnet ID"
-  value       = aws_subnet.puddle_public_subnet.id
+output "public_subnet_ids" {
+  description = "Public subnet IDs"
+  value       = [
+    aws_subnet.puddle_public_subnet_a.id,
+    aws_subnet.puddle_public_subnet_b.id,
+  ]
 }
 
-output "private_subnet_id" {
-  description = "Private subnet ID"
-  value       = aws_subnet.puddle_private_subnet.id
+output "private_subnet_ids" {
+  description = "Private subnet IDs"
+  value       = [
+    aws_subnet.puddle_private_subnet_a.id,
+    aws_subnet.puddle_private_subnet_b.id,
+  ]
 }
 
 output "internet_gateway_id" {

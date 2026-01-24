@@ -9,10 +9,12 @@ module "s3" {
 }
 
 module "vpc" {
-  source                    = "./modules/vpc"
-  vpc_cidr_block            = var.vpc_cidr_block
-  public_subnet_cidr_block  = var.public_subnet_cidr_block
-  private_subnet_cidr_block = var.private_subnet_cidr_block
+  source                      = "./modules/vpc"
+  vpc_cidr_block              = var.vpc_cidr_block
+  public_subnet_cidr_block_a  = var.public_subnet_cidr_block_a
+  public_subnet_cidr_block_b  = var.public_subnet_cidr_block_b
+  private_subnet_cidr_block_a = var.private_subnet_cidr_block_a
+  private_subnet_cidr_block_b = var.private_subnet_cidr_block_b
 }
 
 module "eks" {
