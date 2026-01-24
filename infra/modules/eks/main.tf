@@ -1,6 +1,6 @@
 resource "aws_iam_role" "eks_cluster_role" {
   name = "${var.cluster_name}-cluster-role"
-  assume_role_policy = jsondecode({
+  assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
@@ -63,6 +63,7 @@ resource "aws_security_group" "puddle_eks_cluster_sg" {
   egress {
     from_port = 0
     to_port   = 0
+    protocol  = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
