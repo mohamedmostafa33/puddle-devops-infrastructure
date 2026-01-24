@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configmap.name }}
+  namespace: {{ .Values.namespace }}
+data:
+  DJANGO_DEBUG: "{{ .Values.configmap.DJANGO_DEBUG }}"
+  DJANGO_ALLOWED_HOSTS: "{{ .Values.configmap.DJANGO_ALLOWED_HOSTS }}"
+  DJANGO_CSRF_TRUSTED_ORIGINS: "{{ .Values.configmap.DJANGO_CSRF_TRUSTED_ORIGINS }}"
+  DJANGO_SECURE: "{{ .Values.configmap.DJANGO_SECURE }}"
+  DJANGO_EMAIL_BACKEND: "{{ .Values.configmap.DJANGO_EMAIL_BACKEND }}"
