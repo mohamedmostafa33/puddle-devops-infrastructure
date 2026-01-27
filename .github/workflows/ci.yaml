@@ -10,7 +10,6 @@ on:
   pull_request:
     branches:
       - main
-  
 
 env:
     AWS_REGION: us-east-1
@@ -111,7 +110,7 @@ jobs:
 
       - name: Tag Docker image for ECR
         run: |
-          docker tag puddle-app:v${{ env.COMMIT_SHA }} ${{ secrets.ECR_URL }}:latest
+          docker tag puddle-app:v${{ env.COMMIT_SHA }} ${{ secrets.ECR_URL }}:${ env.COMMIT_SHA }
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -126,6 +125,6 @@ jobs:
       
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ secrets.ECR_URL }}:latest
-          echo "Pushed: ${{ secrets.ECR_URL }}:latest"
+          docker push ${{ secrets.ECR_URL }}:${{ env.COMMIT_SHA }}
+          echo "Pushed: ${{ secrets.ECR_URL }}:${{ env.COMMIT_SHA }}"
           
