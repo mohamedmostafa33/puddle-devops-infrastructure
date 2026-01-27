@@ -8,8 +8,23 @@ variable "eks_node_group_sg_id" {
   type = string
 }
 
+variable "eks_cluster_sg_id" {
+  description = "EKS cluster security group ID"
+  type = string
+}
+
+variable "eks_cluster_managed_sg_id" {
+  description = "EKS cluster-managed security group ID (automatically created by EKS)"
+  type = string
+}
+
 variable "db_name" {
-  description = "Database name"
+  description = "RDS instance identifier"
+  type = string
+}
+
+variable "db_database_name" {
+  description = "Database name to create in RDS instance"
   type = string
 }
 

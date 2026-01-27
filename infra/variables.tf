@@ -55,7 +55,7 @@ variable "eks_version" {
 variable "node_instance_type" {
   description = "Instance type for the node group"
   type        = string
-  default     = "t3.micro"
+  default     = "t3.small"
 }
 
 variable "node_min_size" {
@@ -80,9 +80,15 @@ variable "tags" {
 }
 
 variable "db_name" {
-  description = "Database name"
+  description = "RDS instance identifier"
   type        = string
   default     = "puddle-db"
+}
+
+variable "db_database_name" {
+  description = "Database name to create in RDS instance"
+  type        = string
+  default     = "puddle"
 }
 
 variable "db_username" {

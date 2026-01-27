@@ -96,3 +96,7 @@ output "db_instance_id" {
   value       = module.rds.db_instance_id
 }
 
+output "eks_cluster_managed_sg_id" {
+  value       = module.eks.eks_cluster_managed_sg_id
+  description = "Cluster-managed security group ID automatically created by EKS"
+}
