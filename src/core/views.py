@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.http import JsonResponse
 
 from item.models import Category, Item
 
@@ -35,3 +36,9 @@ def signup(request):
     return render(request, 'core/signup.html', {
         'form': form
     })
+
+def health_check(request):
+    """
+    Health check endpoint for Kubernetes liveness and readiness probes
+    """
+    return JsonResponse({'status': 'healthy'}, status=200)

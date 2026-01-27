@@ -1,19 +1,19 @@
 name: Infrastructure Pipeline
 
 on:
-  workflow_call:
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      TF_API_TOKEN:
-        required: true
-    outputs:
-      ecr_url:
-        description: "ECR Repository URL"
-        value: ${{ jobs.publish-ecr-url.outputs.ecr_url }}
+  workflow_dispatch:
+  
+  push:
+    branches:
+      - main
 
+  pull_request:
+    branches:
+      - main
+
+env:
+    AWS_REGION: us-east-1
+    
 jobs:
   
   detect-changes:
@@ -54,7 +54,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -97,63 +97,4 @@ jobs:
           echo "ECR Repository: $ECR_URL"
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-
-  fetch-ecr:
-    name: Fetch existing ECR URL
-    needs: detect-changes
-    if: needs.detect-changes.outputs.infra_changed != 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.fetch.outputs.ecr_url }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Lookup or create ECR repository
-        id: fetch
-        run: |
-          set -e
-          REPO_NAME="puddle-app-repo"
-          ECR_URL=$(aws ecr describe-repositories --repository-names "$REPO_NAME" --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)
-          if [ -z "$ECR_URL" ] || [ "$ECR_URL" = "None" ]; then
-            ECR_URL=$(aws ecr create-repository --repository-name "$REPO_NAME" --query 'repository.repositoryUri' --output text)
-            echo "Created ECR repo: $REPO_NAME"
-          else
-            echo "Found existing ECR repo: $REPO_NAME"
-          fi
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
-
-  publish-ecr-url:
-    name: Publish ECR URL
-    needs: [terraform, fetch-ecr]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.choose.outputs.ecr_url }}
-    steps:
-      - name: Choose Terraform or existing ECR URL
-        id: choose
-        run: |
-          TF_URL="${{ needs.terraform.outputs.ecr_url }}"
-          TF_RESULT="${{ needs.terraform.result }}"
-          FETCH_URL="${{ needs.fetch-ecr.outputs.ecr_url }}"
-          FETCH_RESULT="${{ needs.fetch-ecr.result }}"
-
-          if [ "$TF_RESULT" = "failure" ]; then
-            echo "Terraform job failed; cannot proceed" >&2
-            exit 1
-          fi
-
-          ECR_URL="${TF_URL:-$FETCH_URL}"
-
-          if [ -z "$ECR_URL" ]; then
-            echo "No ECR URL available (TF result: $TF_RESULT, fetch result: $FETCH_RESULT)" >&2
-            exit 1
-          fi
-
-          echo "Using ECR URL: $ECR_URL"
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          
