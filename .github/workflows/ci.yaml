@@ -5,7 +5,7 @@ on:
 
   push:
     branches:
-      - main
+      - test
 
   pull_request:
     branches:
@@ -110,7 +110,7 @@ jobs:
 
       - name: Tag Docker image for ECR
         run: |
-          docker tag puddle-app:v${{ env.COMMIT_SHA }} ${{ secrets.ECR_URL }}:${ env.COMMIT_SHA }
+          docker tag puddle-app:v${{ env.COMMIT_SHA }} ${{ secrets.ECR_URL }}:${{ env.COMMIT_SHA }}
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
