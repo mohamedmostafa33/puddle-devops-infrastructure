@@ -19,7 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Env configuration
 env = environ.Env(
-    DJANGO_DEBUG=(bool, False),
+    DJANGO_DEBUG=(bool),
+    DJANGO_SECURE=(bool),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
@@ -31,9 +32,11 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DJANGO_DEBUG', default=False)
+DEBUG = env.bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
+
+CSRF_TRUSTED_ORIGINS = env.list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -91,7 +94,7 @@ WSGI_APPLICATION = 'puddle.wsgi.application'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db('DATABASE_URL'),
+    'default': env.db(),
 }
 
 
@@ -137,39 +140,30 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Email backend (configurable via env for production)
-EMAIL_BACKEND = env('DJANGO_EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+# Email backend (console in dev, configurable in prod)
+EMAIL_BACKEND = env('DJANGO_EMAIL_BACKEND')
 
 # Security settings for production
-SECURE_SSL_REDIRECT = env.bool('DJANGO_SECURE_SSL_REDIRECT', default=True)
-SESSION_COOKIE_SECURE = env.bool('DJANGO_SESSION_COOKIE_SECURE', default=True)
-CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=True)
-SESSION_COOKIE_HTTPONLY = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
-SECURE_HSTS_SECONDS = env.int('DJANGO_HSTS_SECONDS', default=31536000)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-X_FRAME_OPTIONS = 'DENY'
-
-# Fail fast if running in production without required settings
-if not DEBUG:
-    if not ALLOWED_HOSTS:
-        raise ValueError('DJANGO_ALLOWED_HOSTS must be set when DEBUG=False')
-    if SECRET_KEY == '' or SECRET_KEY is None:
-        raise ValueError('DJANGO_SECRET_KEY must be set when DEBUG=False')
+SECURE_MODE = env.bool('DJANGO_SECURE')
+if SECURE_MODE:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = env.int('DJANGO_HSTS_SECONDS')
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # AWS S3 Settings - Use S3 for storage if configured
-USE_S3 = env.bool('USE_S3', default=False)
+USE_S3 = env.bool('USE_S3')
 
 if USE_S3:
     # AWS S3 Settings
     AWS_STORAGE_BUCKET_NAME = env('AWS_BUCKET_NAME')
     AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
-    AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN', default=f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com')
+    AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME')
+    AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN')
     AWS_DEFAULT_ACL = None
     AWS_S3_OBJECT_PARAMETERS = {
         'CacheControl': 'max-age=86400',
