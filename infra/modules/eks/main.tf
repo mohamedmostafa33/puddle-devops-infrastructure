@@ -115,6 +115,16 @@ resource "aws_security_group_rule" "puddle_eks_cluster_inbound" {
   description              = "Allow EKS cluster to communicate with nodes"
 }
 
+resource "aws_security_group_rule" "puddle_eks_nodes_from_loadbalancer" {
+  type              = "ingress"
+  from_port         = 30000
+  to_port           = 32767
+  protocol          = "tcp"
+  security_group_id = aws_security_group.puddle_eks_cluster_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "Allow LoadBalancer to access NodePort services"
+}
+
 
 resource "aws_eks_cluster" "puddle_eks_cluster" {
   name     = var.cluster_name

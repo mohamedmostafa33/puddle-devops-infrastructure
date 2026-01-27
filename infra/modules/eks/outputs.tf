@@ -32,3 +32,8 @@ output "eks_node_group_sg_id" {
   value       = aws_security_group.puddle_eks_node_group_sg.id
   description = "Security group ID of EKS nodes"
 }
+
+output "eks_cluster_managed_sg_id" {
+  value       = aws_eks_cluster.puddle_eks_cluster.vpc_config[0].cluster_security_group_id
+  description = "Cluster-managed security group ID automatically created by EKS"
+}
