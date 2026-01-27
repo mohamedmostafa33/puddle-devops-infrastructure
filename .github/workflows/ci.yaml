@@ -1,31 +1,26 @@
 name: CI Pipeline
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
-      - feature/pipeline-setup
+      - main
+
   pull_request:
     branches:
       - main
-  workflow_dispatch:
+  
 
 env:
-    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     AWS_REGION: us-east-1
     AWS_BUCKET_NAME: puddle-s3-media-nti
     AWS_S3_REGION_NAME: us-east-1
     AWS_S3_CUSTOM_DOMAIN: puddle-s3-media-nti.s3.amazonaws.com
-    USE_S3: "True"
-
+    USE_S3: true
+    
 jobs:
-  infra:
-    uses: ./.github/workflows/infra.yaml
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
-  
+
   detect-changes:
     name: Detect Application changes
     runs-on: ubuntu-latest
@@ -47,8 +42,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   build:
+    name: Build and Test Application
     runs-on: ubuntu-latest
-    needs: [infra, detect-changes]
+    needs: [detect-changes]
     if: needs.detect-changes.outputs.app_changed == 'true'
     steps:
       - name: Checkout code
@@ -65,6 +61,25 @@ jobs:
           pip install -r src/requirements.txt
           pip install coverage
 
+      - name: Create .env file
+        working-directory: src
+        run: |
+          cat > .env << EOF
+          DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+          DJANGO_DEBUG=False
+          DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+          DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost
+          DATABASE_URL=sqlite:///db.sqlite3
+          DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+          DJANGO_SECURE=False
+          USE_S3=${{ env.USE_S3 }}
+          AWS_BUCKET_NAME=${{ env.AWS_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_REGION_NAME=${{ env.AWS_S3_REGION_NAME }}
+          AWS_S3_CUSTOM_DOMAIN=${{ env.AWS_S3_CUSTOM_DOMAIN }}
+          EOF
+
       - name: Collect static files
         working-directory: src
         run: |
@@ -78,19 +93,14 @@ jobs:
           coverage xml
 
   docker:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: [build, infra, detect-changes]
+    needs: [build, detect-changes]
     if: needs.detect-changes.outputs.app_changed == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Get ECR URL from infra job
-        run: |
-          ECR_URL="${{ needs.infra.outputs.ecr_url }}"
-          echo "ECR URL is: $ECR_URL"
-          echo "ECR_URL=$ECR_URL" >> $GITHUB_ENV
-
       - name: Get commit SHA
         id: get-sha
         run: echo "COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
@@ -101,21 +111,21 @@ jobs:
 
       - name: Tag Docker image for ECR
         run: |
-          docker tag puddle-app:v${{ env.COMMIT_SHA }} ${{ env.ECR_URL }}:latest
+          docker tag puddle-app:v${{ env.COMMIT_SHA }} ${{ secrets.ECR_URL }}:latest
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_URL }}
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_URL }}
       
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ env.ECR_URL }}:latest
-          echo "Pushed: ${{ env.ECR_URL }}:latest"
+          docker push ${{ secrets.ECR_URL }}:latest
+          echo "Pushed: ${{ secrets.ECR_URL }}:latest"
           
