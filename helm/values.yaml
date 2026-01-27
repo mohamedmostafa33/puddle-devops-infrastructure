@@ -4,8 +4,8 @@ deployment:
   name: puddle-app-deployment
   app: puddle-app
   container_name: puddle-app-container
-  replicas: 3
-  image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/puddle-app:v1
+  replicas: 1
+  image: 231498620802.dkr.ecr.us-east-1.amazonaws.com/puddle-app-repo:latest
   port: 8000
 
 configmap:
@@ -13,13 +13,16 @@ configmap:
   DJANGO_DEBUG: "False"
   DJANGO_ALLOWED_HOSTS: "*"
   DJANGO_CSRF_TRUSTED_ORIGINS: ""
-  DJANGO_SECURE: "true"
+  DJANGO_SECURE: "false"
+  DJANGO_HSTS_SECONDS: "31536000"
   DJANGO_EMAIL_BACKEND: "django.core.mail.backends.console.EmailBackend"
+  USE_S3: "True"
+  AWS_BUCKET_NAME: "puddle-s3-media-nti"
+  AWS_S3_REGION_NAME: "us-east-1"
+  AWS_S3_CUSTOM_DOMAIN: "puddle-s3-media-nti.s3.amazonaws.com"
 
 secret:
   name: puddle-app-secret
-  DJANGO_SECRET_KEY: "mav890j3,mc0c-cx2v7y78kjn78l07-cx2-+cub4+7u46-25c"
-  DATABASE_URL: ""
 
 service:
   name: puddle-app-service
@@ -32,24 +35,24 @@ service:
 
 resources:
   requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
     memory: "256Mi"
     cpu: "250m"
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
 
 probes:
   liveness:
-    path: /
+    path: /about/
+    port: 8000
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+  readiness:
+    path: /about/
     port: 8000
     initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 5
-    failureThreshold: 3
-  readiness:
-    path: /
-    port: 8000
-    initialDelaySeconds: 10
-    periodSeconds: 5
-    timeoutSeconds: 3
-    failureThreshold: 3
+    failureThreshold: 5
