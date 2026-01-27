@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.deployment.name }}-create-superuser
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deployment.app }}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: create-superuser
+        image: {{ .Values.deployment.image }}
+        imagePullPolicy: Always
+        command:
+          - /bin/sh
+          - -c
+          - |
+            python manage.py createsuperuser --noinput || echo "Superuser already exists or failed"
+        env:
+        - name: DJANGO_SUPERUSER_USERNAME
+          value: "admin"
+        - name: DJANGO_SUPERUSER_EMAIL
+          value: "admin@puddle.com"
+        - name: DJANGO_SUPERUSER_PASSWORD
+          value: "Admin@123"
+        envFrom:
+        - configMapRef:
+            name: {{ .Values.configmap.name }}
+        - secretRef:
+            name: {{ .Values.secret.name }}
