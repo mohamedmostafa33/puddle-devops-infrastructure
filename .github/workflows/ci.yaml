@@ -28,11 +28,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       
       - name: Check for changes in src/
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          base: HEAD~1
           filters: |
             app:
               - 'src/**'
