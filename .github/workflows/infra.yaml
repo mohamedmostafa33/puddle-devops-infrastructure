@@ -105,6 +105,21 @@ jobs:
           echo "Cluster nodes:"
           kubectl get nodes
       
+      - name: Install EBS CSI Driver
+        run: |
+          echo "Installing EBS CSI Driver addon..."
+          aws eks create-addon \
+            --cluster-name puddle-eks-cluster \
+            --addon-name aws-ebs-csi-driver \
+            --region ${{ env.AWS_REGION }} \
+            --resolve-conflicts OVERWRITE || echo "EBS CSI driver already installed"
+          
+          echo "Waiting for EBS CSI driver to be ready..."
+          sleep 30
+          
+          echo "EBS CSI driver status:"
+          kubectl get csidriver
+      
       - name: Install ArgoCD
         run: |
           if kubectl get namespace argocd &> /dev/null; then
@@ -187,24 +202,27 @@ jobs:
       
       - name: Deploy Monitoring Stack
         run: |
-          echo "Deploying Prometheus & Grafana via ArgoCD..."
-          kubectl apply -f argocd/prometheus-application.yaml
-          kubectl apply -f argocd/grafana-application.yaml
+          echo "Checking if Prometheus is already deployed..."
+          if kubectl get application prometheus -n argocd &> /dev/null; then
+            echo "Prometheus application already exists - skipping deployment"
+          else
+            echo "Deploying Prometheus via ArgoCD..."
+            kubectl apply -f argocd/prometheus-application.yaml
+          fi
           
-          echo "Waiting for monitoring applications to be created..."
-          sleep 10
+          echo "Checking if Grafana is already deployed..."
+          if kubectl get application grafana -n argocd &> /dev/null; then
+            echo "Grafana application already exists - skipping deployment"
+          else
+            echo "Deploying Grafana via ArgoCD..."
+            kubectl apply -f argocd/grafana-application.yaml
+          fi
+          
+          echo "Waiting for monitoring applications to be ready..."
+          sleep 30
           
           echo "Monitoring Applications Status:"
-          kubectl get applications -n argocd | grep -E "(prometheus|grafana)"
-          
-          echo "Waiting for Prometheus and Grafana to be ready..."
-          kubectl wait --for=condition=available --timeout=600s \
-            deployment/prometheus-kube-prometheus-operator \
-            -n monitoring || echo "Prometheus operator not ready yet"
-          
-          kubectl wait --for=condition=available --timeout=600s \
-            deployment/grafana \
-            -n monitoring || echo "Grafana not ready yet"
+          kubectl get applications -n argocd | grep -E "(prometheus|grafana)" || echo "Monitoring applications not found yet"
       
       - name: Infrastructure Setup Summary
         run: |

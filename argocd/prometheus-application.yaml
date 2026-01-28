@@ -14,7 +14,7 @@ spec:
       valuesObject:
         prometheus:
           prometheusSpec:
-            retention: 30d
+            retention: 15d
             replicas: 1
             storageSpec:
               volumeClaimTemplate:
@@ -23,7 +23,7 @@ spec:
                   accessModes: ["ReadWriteOnce"]
                   resources:
                     requests:
-                      storage: 10Gi
+                      storage: 5Gi
             resources:
               requests:
                 cpu: 200m

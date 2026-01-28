@@ -55,6 +55,11 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+resource "aws_iam_role_policy_attachment" "node_AmazonEBSCSIDriverPolicy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
 resource "aws_security_group" "puddle_eks_cluster_sg" {
   name        = "${var.cluster_name}-cluster-sg"
   description = "Security group for EKS cluster"
@@ -155,4 +160,13 @@ resource "aws_eks_node_group" "puddle_eks_node_group" {
   instance_types = [var.node_instance_type]
 
   tags = var.tags 
+}
+
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name             = aws_eks_cluster.puddle_eks_cluster.name
+  addon_name               = "aws-ebs-csi-driver"
+  addon_version            = "v1.35.0-eksbuild.1"
+  resolve_conflicts_on_create = "OVERWRITE"
+
+  tags = var.tags
 }
