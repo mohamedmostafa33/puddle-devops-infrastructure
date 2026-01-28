@@ -214,7 +214,7 @@ jobs:
           argocd app terminate-op puddle-app || echo "No operation to terminate"
           
           echo "Waiting for termination to complete..."
-          sleep 10
+          sleep 20
           
           echo "Triggering ArgoCD sync for puddle-app..."
           argocd app sync puddle-app --force --prune
