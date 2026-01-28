@@ -1,7 +1,7 @@
 
 
 
-# 🛍️ Puddle - Online Marketplace
+# 🛍️ Puddle App- Online Marketplace
 
 A modern Django-based marketplace where users can buy and sell items with features like shopping cart, reviews, and real-time messaging.
 

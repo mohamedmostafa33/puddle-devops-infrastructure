@@ -128,3 +128,13 @@ jobs:
           docker push ${{ secrets.ECR_URL }}:${{ env.COMMIT_SHA }}
           echo "Pushed: ${{ secrets.ECR_URL }}:${{ env.COMMIT_SHA }}"
           
+      - name: Update helm values file
+        run: |
+          sed -i 's|image: .*|image: '"${{ secrets.ECR_URL }}:${{ env.COMMIT_SHA }}"'|g' helm/values.yaml
+
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git checkout -b update-image-${{ env.COMMIT_SHA }}
+          git add helm/values.yaml
+          git commit -m "Update Docker image to ${{ env.COMMIT_SHA }}"
+          git push origin update-image-${{ env.COMMIT_SHA }}
