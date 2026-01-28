@@ -107,20 +107,24 @@ jobs:
       
       - name: Install ArgoCD
         run: |
-          echo "Creating ArgoCD namespace..."
-          kubectl create namespace argocd || echo "Namespace already exists"
-          
-          echo "Installing ArgoCD..."
-          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-          
-          echo "Waiting for ArgoCD components to be ready..."
-          kubectl wait --for=condition=available --timeout=600s \
-            deployment/argocd-server \
-            deployment/argocd-repo-server \
-            deployment/argocd-applicationset-controller \
-            -n argocd
-          
-          echo "ArgoCD installed successfully"
+          if kubectl get namespace argocd &> /dev/null; then
+            echo "ArgoCD namespace already exists - skipping installation"
+          else
+            echo "Creating ArgoCD namespace..."
+            kubectl create namespace argocd
+            
+            echo "Installing ArgoCD..."
+            kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+            
+            echo "Waiting for ArgoCD components to be ready..."
+            kubectl wait --for=condition=available --timeout=600s \
+              deployment/argocd-server \
+              deployment/argocd-repo-server \
+              deployment/argocd-applicationset-controller \
+              -n argocd
+            
+            echo "ArgoCD installed successfully"
+          fi
       
       - name: Expose ArgoCD Server
         run: |
