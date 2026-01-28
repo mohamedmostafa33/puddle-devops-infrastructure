@@ -210,6 +210,9 @@ jobs:
       - name: Sync ArgoCD Application
         if: steps.check_argocd.outputs.argocd_installed == 'true'
         run: |
+          echo "Checking for existing operations..."
+          argocd app terminate-op puddle-app || echo "No operation to terminate"
+          
           echo "Triggering ArgoCD sync for puddle-app..."
           argocd app sync puddle-app --force --prune
           
