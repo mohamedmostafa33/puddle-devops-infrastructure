@@ -37,4 +37,7 @@ USER appuser
 EXPOSE 8000
 
 # Set the command to run Gunicorn with the Django app as the entry point
-CMD ["gunicorn", "puddle.wsgi:application", "--bind", "0.0.0.0:8000"]
+# --timeout 300: Worker timeout set to 5 minutes for slow database connections
+# --workers 2: Use 2 worker processes for better concurrency
+# --worker-class sync: Use synchronous workers (default)
+CMD ["gunicorn", "puddle.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "300", "--workers", "2"]
