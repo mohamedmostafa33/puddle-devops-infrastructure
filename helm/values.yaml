@@ -5,7 +5,7 @@ deployment:
   app: puddle-app
   container_name: puddle-app-container
   replicas: 1
-  image: 231498620802.dkr.ecr.us-east-1.amazonaws.com/puddle-app-repo:57450a3
+  image: 231498620802.dkr.ecr.us-east-1.amazonaws.com/puddle-app-repo:e1f608e
   port: 8000
 
 configmap:
