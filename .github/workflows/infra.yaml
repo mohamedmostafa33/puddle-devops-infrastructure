@@ -152,7 +152,7 @@ jobs:
         run: |
           echo "Creating database secret..."
           kubectl create secret generic puddle-db-secret \
-            --from-literal=DATABASE_URL="postgresql://${{ secrets.DB_USERNAME }}:${{ secrets.DB_PASSWORD }}@${{ steps.terraform_outputs.outputs.db_endpoint }}/${{ secrets.DB_NAME }}" \
+            --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             --namespace=puddle-production \
             --dry-run=client -o yaml | kubectl apply -f -
           
