@@ -147,7 +147,7 @@ resource "aws_eks_node_group" "puddle_eks_node_group" {
   subnet_ids      = var.private_subnet_ids
 
   scaling_config {
-    desired_size = var.node_min_size
+    desired_size = var.node_max_size
     max_size     = var.node_max_size
     min_size     = var.node_min_size
   }
