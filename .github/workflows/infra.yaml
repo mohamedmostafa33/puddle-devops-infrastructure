@@ -1,19 +1,19 @@
 name: Infrastructure Pipeline
 
 on:
-  workflow_call:
-    secrets:
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      TF_API_TOKEN:
-        required: true
-    outputs:
-      ecr_url:
-        description: "ECR Repository URL"
-        value: ${{ jobs.publish-ecr-url.outputs.ecr_url }}
+  workflow_dispatch:
+  
+  push:
+    branches:
+      - main
 
+  pull_request:
+    branches:
+      - main
+
+env:
+    AWS_REGION: us-east-1
+    
 jobs:
   
   detect-changes:
@@ -31,19 +31,15 @@ jobs:
         id : detect_changes
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ github.event.before }}
           filters: |
             infra:
-              - 'terraform/**/*.tf'
-          list-files: json
-          token: ${{ secrets.GITHUB_TOKEN }}
+              - 'infra/**/*.tf'
+              - 'infra/**/*.tfvars'
   
   terraform:
-    name: Provision ECR Infrastructure
-    needs: detect-changes
-    if: needs.detect-changes.outputs.infra_changed == 'true'
+    name: Provision AWS Infrastructure
     runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.ecr_output.outputs.ecr_url }}
     
     steps:
       - name: Checkout code
@@ -54,7 +50,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -71,89 +67,180 @@ jobs:
         working-directory: ./infra
         run: terraform validate
       
-      - name: Terraform Plan and Apply
+      - name: Terraform Plan
         working-directory: ./infra
-        run: |
-          terraform plan -out=tfplan -detailed-exitcode
-          PLAN_EXIT_CODE=$?
-          if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-            echo "No changes to apply."
-          elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-            echo "Changes detected, applying..."
-            terraform apply -auto-approve tfplan
-          else
-            echo "Error running terraform plan"
-            exit $PLAN_EXIT_CODE
-          fi
+        run: terraform plan
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       
-      - name: Get ECR Repository URL
-        id: ecr_output
+      - name: Terraform Apply
         working-directory: ./infra
-        run: |
-          ECR_URL=$(terraform output -raw ecr_repository_url)
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
-          echo "ECR Repository: $ECR_URL"
+        run: terraform apply -auto-approve
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-
-  fetch-ecr:
-    name: Fetch existing ECR URL
-    needs: detect-changes
-    if: needs.detect-changes.outputs.infra_changed != 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.fetch.outputs.ecr_url }}
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Lookup or create ECR repository
-        id: fetch
+      
+      - name: Display All Terraform Outputs
+        id: terraform_outputs
+        working-directory: ./infra
         run: |
-          set -e
-          REPO_NAME="puddle-app-repo"
-          ECR_URL=$(aws ecr describe-repositories --repository-names "$REPO_NAME" --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)
-          if [ -z "$ECR_URL" ] || [ "$ECR_URL" = "None" ]; then
-            ECR_URL=$(aws ecr create-repository --repository-name "$REPO_NAME" --query 'repository.repositoryUri' --output text)
-            echo "Created ECR repo: $REPO_NAME"
+          terraform output
+
+          EKS_CLUSTER=$(terraform output -raw eks_cluster_name)
+          DB_ENDPOINT=$(terraform output -raw db_endpoint)
+          
+          echo "eks_cluster_name=$EKS_CLUSTER" >> $GITHUB_OUTPUT
+          echo "db_endpoint=$DB_ENDPOINT" >> $GITHUB_OUTPUT
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Configure kubectl for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ steps.terraform_outputs.outputs.eks_cluster_name }} \
+            --region ${{ env.AWS_REGION }}
+          
+          echo "Cluster info:"
+          kubectl cluster-info
+          
+          echo "Cluster nodes:"
+          kubectl get nodes
+      
+      - name: Install ArgoCD
+        run: |
+          if kubectl get namespace argocd &> /dev/null; then
+            echo "ArgoCD namespace already exists - skipping installation"
           else
-            echo "Found existing ECR repo: $REPO_NAME"
+            echo "Creating ArgoCD namespace..."
+            kubectl create namespace argocd
+            
+            echo "Installing ArgoCD..."
+            kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+            
+            echo "Waiting for ArgoCD components to be ready..."
+            kubectl wait --for=condition=available --timeout=600s \
+              deployment/argocd-server \
+              deployment/argocd-repo-server \
+              deployment/argocd-applicationset-controller \
+              -n argocd
+            
+            echo "ArgoCD installed successfully"
           fi
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
-
-  publish-ecr-url:
-    name: Publish ECR URL
-    needs: [terraform, fetch-ecr]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    outputs:
-      ecr_url: ${{ steps.choose.outputs.ecr_url }}
-    steps:
-      - name: Choose Terraform or existing ECR URL
-        id: choose
+      
+      - name: Expose ArgoCD Server
         run: |
-          TF_URL="${{ needs.terraform.outputs.ecr_url }}"
-          TF_RESULT="${{ needs.terraform.result }}"
-          FETCH_URL="${{ needs.fetch-ecr.outputs.ecr_url }}"
-          FETCH_RESULT="${{ needs.fetch-ecr.result }}"
+          echo "Patching ArgoCD server service to LoadBalancer..."
+          kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+          
+          echo "Waiting for LoadBalancer provisioning..."
+          sleep 60
+          
+          ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "ArgoCD Server URL: http://$ARGOCD_SERVER"
+      
+      - name: Retrieve ArgoCD Admin Password
+        id: argocd_password
+        run: |
+          ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+          
+          echo "ArgoCD Credentials"
+          echo "URL: http://$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+          echo "Username: admin"
+          echo "Password: $ARGOCD_PASSWORD"
 
-          if [ "$TF_RESULT" = "failure" ]; then
-            echo "Terraform job failed; cannot proceed" >&2
-            exit 1
+      - name: Create Application Namespace
+        run: |
+          echo "Creating application namespace..."
+          kubectl create namespace puddle-production || echo "Namespace already exists"
+      
+      - name: Create Database Secret
+        run: |
+          echo "Creating database secret..."
+          kubectl create secret generic puddle-db-secret \
+            --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            --namespace=puddle-production \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          echo "Database secret created"
+      
+      - name: Create Application Secrets
+        run: |
+          echo "Creating application secrets..."
+          kubectl create secret generic puddle-app-secret \
+            --from-literal=DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}" \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            --namespace=puddle-production \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          echo "Application secrets created"
+      
+      - name: Deploy ArgoCD Application
+        run: |
+          echo "Deploying ArgoCD Application manifest..."
+          kubectl apply -f argocd/application.yaml
+          
+          echo "Waiting for application to sync..."
+          sleep 10
+          
+          echo "ArgoCD Application Status:"
+          kubectl get application puddle-app -n argocd
+      
+      - name: Deploy Monitoring Stack
+        run: |
+          echo "Checking if Prometheus is already deployed..."
+          if kubectl get application prometheus -n argocd &> /dev/null; then
+            echo "Prometheus application already exists - skipping deployment"
+          else
+            echo "Deploying Prometheus via ArgoCD..."
+            kubectl apply -f argocd/prometheus-application.yaml
           fi
-
-          ECR_URL="${TF_URL:-$FETCH_URL}"
-
-          if [ -z "$ECR_URL" ]; then
-            echo "No ECR URL available (TF result: $TF_RESULT, fetch result: $FETCH_RESULT)" >&2
-            exit 1
+          
+          echo "Checking if Grafana is already deployed..."
+          if kubectl get application grafana -n argocd &> /dev/null; then
+            echo "Grafana application already exists - skipping deployment"
+          else
+            echo "Deploying Grafana via ArgoCD..."
+            kubectl apply -f argocd/grafana-application.yaml
           fi
-
-          echo "Using ECR URL: $ECR_URL"
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          
+          echo "Waiting for monitoring applications to be ready..."
+          sleep 30
+          
+          echo "Monitoring Applications Status:"
+          kubectl get applications -n argocd | grep -E "(prometheus|grafana)" || echo "Monitoring applications not found yet"
+      
+      - name: Infrastructure Setup Summary
+        run: |
+          echo "Infrastructure Setup Complete"
+          echo ""
+          echo "AWS Resources Provisioned:"
+          echo "  - VPC with public/private subnets"
+          echo "  - EKS Cluster: ${{ steps.terraform_outputs.outputs.eks_cluster_name }}"
+          echo "  - RDS Database: ${{ steps.terraform_outputs.outputs.db_endpoint }}"
+          echo "  - S3 Bucket for media files"
+          echo "  - ECR Repository for Docker images"
+          echo ""
+          echo "ArgoCD Configuration:"
+          echo "  - Installed in argocd namespace"
+          echo "  - Exposed via LoadBalancer"
+          echo "  - Application manifest deployed"
+          echo ""
+          echo "Monitoring Stack:"
+          echo "  - Prometheus installed in monitoring namespace"
+          echo "  - Grafana installed with pre-configured dashboards"
+          echo "  - ServiceMonitor configured for puddle-app"
+          echo ""
+          echo "Kubernetes Secrets Created:"
+          echo "  - puddle-db-secret (database credentials)"
+          echo "  - puddle-app-secret (application secrets)"
+          echo ""
+          echo "Access URLs:"
+          echo "  - ArgoCD: http://$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo 'pending...')"
+          echo "  - Grafana: http://$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo 'pending...')"
+          echo ""
+          echo "Default Credentials:"
+          echo "  - Grafana: admin / Admin@123"
+          echo ""
+          echo "Next Steps:"
+          echo "  1. Wait for LoadBalancers to be provisioned"
+          echo "  2. Run CI/CD pipeline to deploy application"

@@ -7,3 +7,6 @@ django-environ==0.11.2
 whitenoise==6.6.0
 boto3==1.42.30
 django-storages==1.14.6
+gunicorn==20.1.0
+psycopg2-binary==2.9.8
+django-prometheus==2.3.1
