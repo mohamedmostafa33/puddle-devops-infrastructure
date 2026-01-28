@@ -25,6 +25,8 @@ spec:
             name: {{ .Values.configmap.name }}
         - secretRef:
             name: {{ .Values.secret.name }}
+        - secretRef:
+            name: puddle-db-secret
         resources:
           requests:
             memory: "{{ .Values.resources.requests.memory }}"
