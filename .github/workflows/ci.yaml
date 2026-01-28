@@ -37,11 +37,6 @@ jobs:
           filters: |
             app:
               - 'src/**'
-      
-      - name: Debug output
-        run: |
-          echo "app changed: ${{ steps.filter.outputs.app }}"
-          echo "app_files: ${{ steps.filter.outputs.app_files }}"
 
   build:
     name: Build and Test Application
