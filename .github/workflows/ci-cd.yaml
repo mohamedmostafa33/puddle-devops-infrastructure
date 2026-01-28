@@ -144,11 +144,11 @@ jobs:
 
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git checkout dev
+          git checkout main
           git add helm/values.yaml
           git commit -m "chore(tag): update Docker image tag to ${{ env.COMMIT_SHA }}" || echo "No changes to commit"
-          git pull origin --rebase dev || true
-          git push origin dev || echo "Nothing to push"
+          git pull origin --rebase main || true
+          git push origin main || echo "Nothing to push"
 
   deploy:
     name: Trigger ArgoCD Deployment
