@@ -24,14 +24,14 @@ jobs:
     name: Detect Application changes
     runs-on: ubuntu-latest
     outputs:
-      app_changed: ${{ steps.detect_changes.outputs.app }}
+      app_changed: ${{ steps.detect-changes.outputs.app }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Detect app changes
-        id : detect_changes
+        id : detect-changes
         uses: dorny/paths-filter@v3
         with:
           filters: |
