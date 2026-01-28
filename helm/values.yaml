@@ -43,14 +43,14 @@ resources:
 
 probes:
   liveness:
-    path: /about/
+    path: /health/
     port: 8000
     initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 5
   readiness:
-    path: /about/
+    path: /health/
     port: 8000
     initialDelaySeconds: 30
     periodSeconds: 10
