@@ -9,7 +9,7 @@ on:
 
   pull_request:
     branches:
-      - main
+      - test
 
 env:
     AWS_REGION: us-east-1
