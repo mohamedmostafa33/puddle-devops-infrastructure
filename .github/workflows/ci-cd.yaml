@@ -5,7 +5,7 @@ on:
 
   push:
     branches:
-      - main
+      - dev
 
   pull_request:
     branches:
@@ -24,21 +24,19 @@ jobs:
     name: Detect Application changes
     runs-on: ubuntu-latest
     outputs:
-      app_changed: ${{ steps.detect_changes.outputs.app }}
+      app_changed: ${{ steps.filter.outputs.app }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Detect app changes
-        id : detect_changes
+      
+      - name: Check for Application changes 
+        id: filter
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ github.event.before }}
           filters: |
             app:
               - 'src/**'
-          list-files: json
-          token: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     name: Build and Test Application
@@ -48,6 +46,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -89,7 +89,20 @@ jobs:
         run: |
           coverage run --source='.' manage.py test
           coverage report
-          coverage xml
+          coverage xml -o coverage.xml
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube Quality Gate Check
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
   docker:
     name: Build and Push Docker Image
