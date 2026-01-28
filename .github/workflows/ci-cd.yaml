@@ -142,13 +142,16 @@ jobs:
         run: |
           sed -i 's|image: .*|image: '"${{ secrets.ECR_URL }}:${{ env.COMMIT_SHA }}"'|g' helm/values.yaml
 
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git checkout main
-          git add helm/values.yaml
-          git commit -m "chore(tag): update Docker image tag to ${{ env.COMMIT_SHA }}" || echo "No changes to commit"
-          git pull origin --rebase main || true
-          git push origin main || echo "Nothing to push"
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            git config --global user.name "github-actions"
+            git config --global user.email "github-actions@github.com"
+            git add helm/values.yaml
+            git commit -m "chore(tag): update Docker image tag to ${{ env.COMMIT_SHA }}" || echo "No changes to commit"
+            git pull origin --rebase dev || true
+            git push origin dev || echo "Nothing to push"
+          else
+            echo "Skipping git push for PR - values.yaml updated locally only"
+          fi
 
   deploy:
     name: Trigger ArgoCD Deployment
