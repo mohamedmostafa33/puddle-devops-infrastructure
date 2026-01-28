@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}-metrics
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.service.app }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    protocol: TCP
+    port: 8000
+    targetPort: 8000
+  selector:
+    app: {{ .Values.deployment.app }}
