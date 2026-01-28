@@ -1,0 +1,105 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+spec:
+  project: default
+  
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: 7.3.7
+    helm:
+      valuesObject:
+        replicas: 1
+        
+        service:
+          type: LoadBalancer
+          port: 80
+          targetPort: 3000
+        
+        adminUser: admin
+        adminPassword: Admin@123
+        
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Prometheus
+                type: prometheus
+                url: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+                access: proxy
+                isDefault: true
+                editable: true
+        
+        dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+              - name: 'default'
+                orgId: 1
+                folder: ''
+                type: file
+                disableDeletion: false
+                editable: true
+                options:
+                  path: /var/lib/grafana/dashboards/default
+        
+        dashboards:
+          default:
+            kubernetes-cluster:
+              gnetId: 7249
+              revision: 1
+              datasource: Prometheus
+            kubernetes-pods:
+              gnetId: 6417
+              revision: 1
+              datasource: Prometheus
+            node-exporter:
+              gnetId: 1860
+              revision: 31
+              datasource: Prometheus
+            argocd:
+              gnetId: 14584
+              revision: 1
+              datasource: Prometheus
+        
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+        
+        persistence:
+          enabled: true
+          size: 5Gi
+          accessModes:
+            - ReadWriteOnce
+        
+        env:
+          GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/"
+          GF_SECURITY_ADMIN_USER: admin
+          GF_SECURITY_ADMIN_PASSWORD: Admin@123
+          GF_USERS_ALLOW_SIGN_UP: "false"
+          GF_AUTH_ANONYMOUS_ENABLED: "false"
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
