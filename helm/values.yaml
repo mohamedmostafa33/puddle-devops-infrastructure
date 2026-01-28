@@ -1,4 +1,4 @@
-namespace: puddle-app-namespace
+namespace: puddle-production
 
 deployment:
   name: puddle-app-deployment
