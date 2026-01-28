@@ -24,21 +24,18 @@ jobs:
     name: Detect Application changes
     runs-on: ubuntu-latest
     outputs:
-      app_changed: ${{ steps.detect-changes.outputs.app }}
+      app_changed: ${{ steps.filter.outputs.app }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Detect app changes
-        id : detect-changes
+      
+      - name: Check for changes in src/
+        id: filter
         uses: dorny/paths-filter@v3
         with:
           filters: |
             app:
               - 'src/**'
-          list-files: json
-          token: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     name: Build and Test Application
