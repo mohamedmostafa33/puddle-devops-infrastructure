@@ -214,7 +214,17 @@ jobs:
           argocd app terminate-op puddle-app || echo "No operation to terminate"
           
           echo "Waiting for termination to complete..."
-          sleep 20
+          sleep 30
+          
+          echo "Verifying operation termination..."
+          for i in {1..6}; do
+            if ! argocd app get puddle-app --show-operation 2>/dev/null | grep -q "inProgress"; then
+              echo "Operation terminated successfully"
+              break
+            fi
+            echo "Waiting for operation to terminate... attempt $i/6"
+            sleep 5
+          done
           
           echo "Triggering ArgoCD sync for puddle-app..."
           argocd app sync puddle-app --force --prune
