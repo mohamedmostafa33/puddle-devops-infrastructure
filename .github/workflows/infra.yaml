@@ -105,21 +105,6 @@ jobs:
           echo "Cluster nodes:"
           kubectl get nodes
       
-      - name: Install EBS CSI Driver
-        run: |
-          echo "Installing EBS CSI Driver addon..."
-          aws eks create-addon \
-            --cluster-name puddle-eks-cluster \
-            --addon-name aws-ebs-csi-driver \
-            --region ${{ env.AWS_REGION }} \
-            --resolve-conflicts OVERWRITE || echo "EBS CSI driver already installed"
-          
-          echo "Waiting for EBS CSI driver to be ready..."
-          sleep 30
-          
-          echo "EBS CSI driver status:"
-          kubectl get csidriver
-      
       - name: Install ArgoCD
         run: |
           if kubectl get namespace argocd &> /dev/null; then
