@@ -165,7 +165,7 @@ resource "aws_eks_node_group" "puddle_eks_node_group" {
 resource "aws_eks_addon" "ebs_csi_driver" {
   cluster_name             = aws_eks_cluster.puddle_eks_cluster.name
   addon_name               = "aws-ebs-csi-driver"
-  addon_version            = "v1.35.0-eksbuild.1"
+  addon_version            = "v1.55.0-eksbuild.1"
   resolve_conflicts_on_create = "OVERWRITE"
 
   tags = var.tags
