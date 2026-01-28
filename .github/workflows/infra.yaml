@@ -73,19 +73,6 @@ jobs:
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
       
-      - name: Import Existing EBS CSI Driver
-        working-directory: ./infra
-        run: |
-          # Check if EBS CSI driver addon exists in EKS cluster
-          if aws eks describe-addon --cluster-name puddle-eks-cluster --addon-name aws-ebs-csi-driver --region ${{ env.AWS_REGION }} &> /dev/null; then
-            echo "EBS CSI driver addon already exists - importing to Terraform state..."
-            terraform import module.eks.aws_eks_addon.ebs_csi_driver puddle-eks-cluster:aws-ebs-csi-driver || echo "Import failed or already imported"
-          else
-            echo "EBS CSI driver addon does not exist - will be created by Terraform"
-          fi
-        env:
-          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      
       - name: Terraform Apply
         working-directory: ./infra
         run: terraform apply -auto-approve

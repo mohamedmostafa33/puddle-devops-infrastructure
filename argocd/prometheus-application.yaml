@@ -14,16 +14,9 @@ spec:
       valuesObject:
         prometheus:
           prometheusSpec:
-            retention: 15d
+            retention: 7d
             replicas: 1
-            storageSpec:
-              volumeClaimTemplate:
-                spec:
-                  storageClassName: gp2
-                  accessModes: ["ReadWriteOnce"]
-                  resources:
-                    requests:
-                      storage: 5Gi
+            storageSpec: {}
             resources:
               requests:
                 cpu: 200m

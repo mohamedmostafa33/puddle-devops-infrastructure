@@ -74,11 +74,7 @@ spec:
             memory: 512Mi
         
         persistence:
-          enabled: true
-          storageClassName: gp2
-          size: 2Gi
-          accessModes:
-            - ReadWriteOnce
+          enabled: false
         
         env:
           GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/"
